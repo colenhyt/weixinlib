@@ -91,6 +91,7 @@ public class SogouSearchManager implements IProcessCallback{
                 WebDriver wxpubDriver = driver.switchTo().window(win);
                 System.out.println(wxpubDriver.getTitle()+","+wxpubDriver.getCurrentUrl());
                 boolean parsed = pbPageParser.parse(wxpubDriver);
+                wxpubDriver.close();
                 if (!parsed){
                 	log.warn("could not parse pb page ");
                 	continue;
@@ -108,7 +109,7 @@ public class SogouSearchManager implements IProcessCallback{
 	}
 	
 	public void onProcessCallback(String wxpublic){
-		
+		process();
 	}
 	
 	public void init(){

@@ -22,6 +22,7 @@ public class WxpublicPageParser {
         for (WebElement item2:ea){
         	String url = "http://mp.weixin.qq.com"+item2.getAttribute("hrefs");
         	this.articleUrls.add(url);
+        	break;
 
         }		
 		return this.articleUrls.size()>0;
