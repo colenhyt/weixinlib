@@ -10,8 +10,10 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.firefox.FirefoxProfile;
 
 import us.codecraft.webmagic.Spider;
+import us.codecraft.webmagic.proxy.SimpleProxyPool;
 import box.weixin.IProcessCallback;
 import box.weixin.PagesGetProcessor;
 import box.weixin.WxpublicPageParser;
@@ -19,6 +21,7 @@ import box.weixin.WxpublicPageParser;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
+import es.download.flow.DownloadContext;
 import es.util.FileUtil;
 import es.util.url.URLStrHelper;
 
@@ -31,10 +34,11 @@ public class SogouSearchManager implements IProcessCallback{
 	private WebDriver driver ;
 	public JSONObject cfgObj;
 	private String articlePath;
+	private SimpleProxyPool proxyPool;
 
 	public static void main(String[] args){
 		SogouSearchManager.getInstance().init();
-		SogouSearchManager.getInstance().process();
+//		SogouSearchManager.getInstance().process();
 	}
 	
 	public static SogouSearchManager getInstance() {
@@ -69,9 +73,13 @@ public class SogouSearchManager implements IProcessCallback{
 		String word = pbs.poll();
 		pbs.peek();
 		word = URLStrHelper.toUtf8String(word);
-       driver.get("http://weixin.sogou.com/weixin?type=1&query="+word);
+		
+		boolean success = fetchPage(word);
        
-       driver.manage().window().maximize();
+		if (!success){
+			log.warn("could not fetch page for :"+word);
+			return;			
+		}
        
    	try {
        
@@ -112,8 +120,47 @@ public class SogouSearchManager implements IProcessCallback{
 		process();
 	}
 	
+	public boolean fetchPage(String word){
+		 driver.get("http://weixin.sogou.com/weixin?type=1&query="+word);
+	     driver.manage().window().maximize();
+
+	     String source = driver.getPageSource();
+	     //切换代理IP
+	     if (source.indexOf("频繁超时")>0){
+	    	 
+	    	 return fetchPage(word);
+	     }
+        List<WebElement> items = driver.findElements(By.cssSelector("div[class='results mt7']"));
+		 
+		return false;
+	}
+	
 	public void init(){
-	      System.setProperty("webdriver.ie.driver", "C:\\Program Files\\Internet Explorer\\iexplore.exe"); 
-	      driver = new FirefoxDriver();
+	      System.setProperty("webdriver.ie.driver", "C:\\Program Files\\Internet Explorer\\iexplore.exe");
+	      
+	      String userAgent = DownloadContext.getSpiderContext().getUserAgent();
+	     // proxyPool = new SimpleProxyPool(true,userAgent);
+	      
+	      FirefoxProfile profile = new FirefoxProfile();
+	      
+	      //自动代理配置
+//	      profile.setPreference("network.proxy.type", 2);
+//	      profile.setPreference("network.proxy.autoconfig_url", "http://proxy.myweb.com:8083"); //
+	      
+	      //手工代理:
+	      profile.setPreference("network.proxy.type", 1);
+	      //http proxy:
+	      profile.setPreference("network.proxy.http", "101.201.235.141");
+	      profile.setPreference("network.proxy.http_port", 11);//8000
+	      
+	      //socket proxy
+//	      profile.setPreference("network.proxy.socks","58.222.254.1");
+//	      profile.setPreference("network.proxy.socks_port", 312);
+//	      profile.setPreference("network.proxy.ssl","58.222.254.1");
+//	      profile.setPreference("network.proxy.ssl_port", 312);
+	      
+	      driver = new FirefoxDriver(profile);
+	      driver.get("http://news.baidu.com");
+	      log.warn(driver.getTitle());
 	}
 }
